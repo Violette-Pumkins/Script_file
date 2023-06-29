@@ -1,0 +1,7 @@
+{
+    "require": {
+        "monolog/monolog": "^3.3",
+        "guzzlehttp/guzzle": "^7.7",
+        "vlucas/phpdotenv": "^5.4"
+    }
+}
