@@ -19,5 +19,12 @@ $logFile = $_ENV['LOG_FILE'];
 
 // Create the controller
 $controller = new DomaineController($dbHost, $dbName, $dbUser, $dbPass, $fileUrl, $logFile);
-// Use a specific date
-$controller->processFileContent('20230531');
+// Check if the desired parameter is passed via command-line argument
+if (isset($argv[1])) {
+    $parameter = $argv[1];
+    $controller->processFileContent($parameter);
+} else {
+    $controller->processFileContent();
+}
+
+// exemple of command: php cli_script.php 20230601

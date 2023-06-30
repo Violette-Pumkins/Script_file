@@ -38,7 +38,7 @@ class DomaineController
         return $domain;
     }
 
-    public function processFileContent($date)
+    public function processFileContent($date = NULL)
     {
         // Get the current date minus one day if no date is provided
         if ($date === null) {
@@ -48,7 +48,7 @@ class DomaineController
         }
 
         // Construct the URL with the dynamic date
-        $url = 'https://www.afnic.fr/wp-media/ftp/domaineTLD_Afnic/' . $fileDate . 'CREA_fr.txt';
+        $url = 'https://www.afnic.fr/wp-media/ftp/domaineTLD_Afnic/' . $fileDate . '_CREA_fr.txt';
 
         $client = new Client();
         $response = $client->get($url); // Use the dynamic URL
@@ -58,23 +58,26 @@ class DomaineController
         foreach ($lines as $line) {
             $domain = $this->extractDomain(trim($line));
 
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM 'domaines' WHERE 'nom' = ':domain' AND 'date' = ':date'");
-            $stmt->bindValue(':domain', $domain);
-            $stmt->bindParam(':date', $fileDate);
-            $stmt->execute();
-            $count = $stmt->fetchColumn();
-
-            if ($count == 0) {
-                $stmt = $this->db->prepare('INSERT INTO domaines (nom, date) VALUES (:domain, :date)');
-                $stmt->bindParam(':domain', $domain);
+             // Skip lines without a ".fr" domain
+            if (!empty($line) && $line[0] !== '#') {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM domaines WHERE nom = :domain AND date = :date");
+                $stmt->bindValue(':domain', $domain);
                 $stmt->bindParam(':date', $fileDate);
                 $stmt->execute();
+                $count = $stmt->fetchColumn();
 
-                $this->writeLog("Domaine: $domain, Date: $fileDate");
-                echo 'Script executed successfully!';
-            } else {
-                $this->writeLog("Skipping duplicate domain: $domain, Date: $fileDate");
-                echo 'Script skipped!';
+                if ($count == 0) {
+                    $stmt = $this->db->prepare('INSERT INTO domaines (id, nom, date) VALUES (NULL, :domain, :date)');
+                    $stmt->bindParam(':domain', $domain);
+                    $stmt->bindParam(':date', $fileDate);
+                    $stmt->execute();
+
+                    $this->writeLog("Domaine: $domain, Date: $fileDate");
+                    echo 'Script executed successfully!';
+                } else {
+                    $this->writeLog("Skipping duplicate domain: $domain, Date: $fileDate");
+                    echo 'Script skipped!';
+                }
             }
         }
     }
